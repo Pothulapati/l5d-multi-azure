@@ -10,6 +10,7 @@ set -x
 # - smallstep/cli: https://github.com/smallstep/cli/releases
 # - linkerd:edge-20.5.3: https://github.com/linkerd/linkerd2/releases/tag/edge-20.5.3
 
+export DEV="${DEV:-microk8s}"
 export LOCATION="${LOCATION:-southeastasia}"
 export GROUP="${GROUP:-clusters}"
 
@@ -76,5 +77,25 @@ linkerd --context=west cluster allow east | kubectl --context=west apply -f -
 linkerd --context=east cluster link west --cluster-name east | kubectl --context west apply -f -
 # Linking west to east
 linkerd --context=west cluster link east --cluster-name west | kubectl --context east apply -f -
+
+# As dev also need to use the intermediate CA let's install dev here only
+# Create issuing credentials. These end up on the cluster (and can be
+# rotated from the root).
+crt="${CA_DIR}/${DEV}-issuer.crt"
+key="${CA_DIR}/${DEV}-issuer.key"
+step certificate create "identity.linkerd.cluster.local" \
+    "$crt" "$key" \
+    --ca="$CA_DIR/ca.crt" \
+    --ca-key="$CA_DIR/ca.key" \
+    --profile=intermediate-ca \
+    --not-after 8760h --no-password --insecure
+
+# Install Linkerd into the cluster.
+linkerd --context="$DEV" install \
+        --identity-trust-anchors-file="$CA_DIR/ca.crt" \
+        --identity-issuer-certificate-file="${crt}" \
+        --identity-issuer-key-file="${key}" |
+        kubectl --context="$DEV" apply -f -
+
 
 
