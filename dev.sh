@@ -7,6 +7,12 @@ set -x
 
 export DEV="${DEV:-microk8s}"
 
+# Check for Linkerd
+linkerd --context="$DEV" check
+
+# Install service-mirror in $DEV
+linkerd --context="$DEV" cluster install --gateway=false | kubectl --context="$DEV" apply -f -
+
 # Allow and Link, dev in east and west
 for remote in east west ; do 
 	
