@@ -79,6 +79,10 @@ linkerd --context=east cluster link west --cluster-name east | kubectl --context
 linkerd --context=west cluster link east --cluster-name west | kubectl --context east apply -f -
 
 # As dev also need to use the intermediate CA let's install dev here only
+
+# Pre Check
+linkerd --context="$DEV" check --pre
+
 # Create issuing credentials. These end up on the cluster (and can be
 # rotated from the root).
 crt="${CA_DIR}/${DEV}-issuer.crt"
@@ -96,6 +100,4 @@ linkerd --context="$DEV" install \
         --identity-issuer-certificate-file="${crt}" \
         --identity-issuer-key-file="${key}" |
         kubectl --context="$DEV" apply -f -
-
-
 
