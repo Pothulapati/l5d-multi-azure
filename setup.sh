@@ -11,8 +11,12 @@ set -x
 # - linkerd:edge-20.5.3: https://github.com/linkerd/linkerd2/releases/tag/edge-20.5.3
 
 export DEV="${DEV:-microk8s}"
-export LOCATION="${LOCATION:-southeastasia}"
+export RGLOCATION="${LOCATION:-southeastasia}"
+export CLUSTER1="${CLUSTER1:-southeastasia}"
+export CLUSTER2="${CLUSTER2:-westus}"
 export GROUP="${GROUP:-clusters}"
+export K8S_VERSION="${K8S_VERSION:-1.18.2}"
+export NODE_SIZE="${NODE_SIZE:-DS1_v2}"
 
 CA_DIR=$(mktemp --tmpdir="${TMPDIR:-/tmp}" -d az-ca.XXXXX)
 
@@ -25,10 +29,19 @@ step certificate create \
     --no-password  --insecure --force
 
 # Create a "$GROUP" resource group
- az group create --name "$GROUP" --location "$LOCATION"
+ az group create --name "$GROUP" --location "$RGLOCATION"
 
-for cluster in east west ; do
-
+for cluster in $CLUSTER1 $CLUSTER2 ; do
+     
+#     while ! az aks create \
+#         --resource-group $GROUP \
+# 	--name $cluster \
+# 	--location $cluster \
+# 	--kubernetes-version $K8S_VERSION \
+# 	--node-vm-size $NODE_SIZE \
+#         --node-count 2 \
+# 	--output none ; do :; done
+	
     az aks get-credentials -n "$cluster" -g "$GROUP"
 
     # Check that the cluster is up and running.
@@ -68,15 +81,15 @@ done
 
 # Allow i.e install SA's that make possible remote to access this cluster
 # Allow access of west in east
-linkerd --context=east cluster allow --service-account-name west | kubectl --context=east apply -f -
+linkerd --context=$CLUSTER1 cluster allow --service-account-name $CLUSTER2 | kubectl --context=$CLUSTER1 apply -f -
 # Allow access of east in west
-linkerd --context=west cluster allow --service-account-name east | kubectl --context=west apply -f -
+linkerd --context=$CLUSTER2 cluster allow --service-account-name $CLUSTER1 | kubectl --context=$CLUSTER2 apply -f -
 
 # Link i.e give the present cluster's secret to the other cluster, allowing it to mirror these services there
 # Linking east to west
-linkerd --context=east cluster link --service-account west --cluster-name east | kubectl --context west apply -f -
+linkerd --context=$CLUSTER1 cluster link --service-account $CLUSTER2 --cluster-name $CLUSTER1 | kubectl --context $CLUSTER2 apply -f -
 # Linking west to east
-linkerd --context=west cluster link --service-account east --cluster-name west | kubectl --context east apply -f -
+linkerd --context=$CLUSTER2 cluster link --service-account $CLUSTER1 --cluster-name $CLUSTER2 | kubectl --context $CLUSTER1 apply -f -
 
 # As dev also need to use the intermediate CA let's install dev here only
 

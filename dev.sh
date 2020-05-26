@@ -5,6 +5,8 @@ set -x
 
 # Links and allows a local l5d environment, which service mirroing enabled from east and west
 
+export CLUSTER1="${CLUSTER1:-southeastasia}"
+export CLUSTER2="${CLUSTER2:-westus}"
 export DEV="${DEV:-microk8s}"
 
 # Check for Linkerd
@@ -14,7 +16,7 @@ linkerd --context="$DEV" check
 linkerd --context="$DEV" cluster install --gateway=false | kubectl --context="$DEV" apply -f -
 
 # Allow and Link, dev in east and west
-for remote in east west ; do 
+for remote in $CLUSTER1 $CLUSTER2 ; do 
 	
 	# Allow
 	linkerd --context="$remote" cluster allow --ignore-cluster --service-account-name dev | kubectl --context="$remote" apply -f -
@@ -28,3 +30,4 @@ done
 # Now run multi-cluster health-checks in $DEV
 linkerd --context="$DEV" check --multicluster
 
+curl -sL https://run.linkerd.io/emojivoto.yml | linkerd --context "$DEV" inject - | kubectl --context "$DEV" apply -f -
