@@ -68,15 +68,15 @@ done
 
 # Allow i.e install SA's that make possible remote to access this cluster
 # Allow access of west in east
-linkerd --context=east cluster allow west | kubectl --context=east apply -f -
+linkerd --context=east cluster allow --service-account-name west | kubectl --context=east apply -f -
 # Allow access of east in west
-linkerd --context=west cluster allow east | kubectl --context=west apply -f -
+linkerd --context=west cluster allow --service-account-name east | kubectl --context=west apply -f -
 
 # Link i.e give the present cluster's secret to the other cluster, allowing it to mirror these services there
 # Linking east to west
-linkerd --context=east cluster link west --cluster-name east | kubectl --context west apply -f -
+linkerd --context=east cluster link --service-account west --cluster-name east | kubectl --context west apply -f -
 # Linking west to east
-linkerd --context=west cluster link east --cluster-name west | kubectl --context east apply -f -
+linkerd --context=west cluster link --service-account east --cluster-name west | kubectl --context east apply -f -
 
 # As dev also need to use the intermediate CA let's install dev here only
 
