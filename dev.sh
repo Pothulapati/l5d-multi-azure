@@ -17,10 +17,10 @@ linkerd --context="$DEV" cluster install --gateway=false | kubectl --context="$D
 for remote in east west ; do 
 	
 	# Allow
-	linkerd --context="$remote" cluster allow dev | kubectl --context="$remote" apply -f -
+	linkerd --context="$remote" cluster allow --ignore-cluster --service-account-name dev | kubectl --context="$remote" apply -f -
 
         # Link	
-	linkerd --context="$remote" cluster link dev --cluster-name="$remote" | kubectl --context="$DEV" apply -f -  
+	linkerd --context="$remote" cluster link  --service-account dev --cluster-name="$remote" | kubectl --context="$DEV" apply -f -  
 
 done
 
