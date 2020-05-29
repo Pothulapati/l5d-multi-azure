@@ -70,7 +70,7 @@ for cluster in $CLUSTER1 $CLUSTER2 ; do
     while ! linkerd --context="$cluster" check ; do :; done
 
     # Setup gateway and service mirror on both clusters
-    linkerd --context="$cluster" cluster install | kubectl --context="$cluster" apply -f -
+    linkerd --context="$cluster" mc install | kubectl --context="$cluster" apply -f -
 
     # Install emojivoto on the cluster
      curl -sL https://run.linkerd.io/emojivoto.yml | linkerd --context "$cluster" inject - | kubectl --context "$cluster" apply -f -
@@ -81,15 +81,15 @@ done
 
 # Allow i.e install SA's that make possible remote to access this cluster
 # Allow access of west in east
-linkerd --context=$CLUSTER1 cluster allow --service-account-name $CLUSTER2 | kubectl --context=$CLUSTER1 apply -f -
+linkerd --context=$CLUSTER1 mc allow --service-account-name $CLUSTER2 | kubectl --context=$CLUSTER1 apply -f -
 # Allow access of east in west
-linkerd --context=$CLUSTER2 cluster allow --service-account-name $CLUSTER1 | kubectl --context=$CLUSTER2 apply -f -
+linkerd --context=$CLUSTER2 mc allow --service-account-name $CLUSTER1 | kubectl --context=$CLUSTER2 apply -f -
 
 # Link i.e give the present cluster's secret to the other cluster, allowing it to mirror these services there
 # Linking east to west
-linkerd --context=$CLUSTER1 cluster link --service-account $CLUSTER2 --cluster-name $CLUSTER1 | kubectl --context $CLUSTER2 apply -f -
+linkerd --context=$CLUSTER1 mc link --service-account $CLUSTER2 --cluster-name $CLUSTER1 | kubectl --context $CLUSTER2 apply -f -
 # Linking west to east
-linkerd --context=$CLUSTER2 cluster link --service-account $CLUSTER1 --cluster-name $CLUSTER2 | kubectl --context $CLUSTER1 apply -f -
+linkerd --context=$CLUSTER2 mc link --service-account $CLUSTER1 --cluster-name $CLUSTER2 | kubectl --context $CLUSTER1 apply -f -
 
 # As dev also need to use the intermediate CA let's install dev here only
 
