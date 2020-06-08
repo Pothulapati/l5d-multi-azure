@@ -13,7 +13,7 @@ set -x
 export DEV="${DEV:-microk8s}"
 export RGLOCATION="${LOCATION:-southeastasia}"
 export CLUSTER1="${CLUSTER1:-southeastasia}"
-export CLUSTER2="${CLUSTER2:-westus}"
+export CLUSTER2="${CLUSTER2:-eastus}"
 export GROUP="${GROUP:-clusters}"
 export K8S_VERSION="${K8S_VERSION:-1.18.2}"
 export NODE_SIZE="${NODE_SIZE:-DS1_v2}"
@@ -27,9 +27,6 @@ step certificate create \
     "$CA_DIR/ca.crt" "$CA_DIR/ca.key" \
     --profile root-ca \
     --no-password  --insecure --force
-
-# Create a "$GROUP" resource group
- az group create --name "$GROUP" --location "$RGLOCATION"
 
 for cluster in $CLUSTER1 $CLUSTER2 ; do
      
@@ -70,7 +67,7 @@ for cluster in $CLUSTER1 $CLUSTER2 ; do
     while ! linkerd --context="$cluster" check ; do :; done
 
     # Setup gateway and service mirror on both clusters
-    linkerd --context="$cluster" mc install | kubectl --context="$cluster" apply -f -
+    linkerd --context="$cluster" mc install --log-level debug | kubectl --context="$cluster" apply -f -
 
     # Install emojivoto on the cluster
      curl -sL https://run.linkerd.io/emojivoto.yml | linkerd --context "$cluster" inject - | kubectl --context "$cluster" apply -f -
@@ -87,9 +84,9 @@ linkerd --context=$CLUSTER2 mc allow --service-account-name $CLUSTER1 | kubectl 
 
 # Link i.e give the present cluster's secret to the other cluster, allowing it to mirror these services there
 # Linking east to west
-linkerd --context=$CLUSTER1 mc link --service-account $CLUSTER2 --cluster-name $CLUSTER1 | kubectl --context $CLUSTER2 apply -f -
+linkerd --context=$CLUSTER1 mc link --service-account-name $CLUSTER2 --cluster-name $CLUSTER1 | kubectl --context $CLUSTER2 apply -f -
 # Linking west to east
-linkerd --context=$CLUSTER2 mc link --service-account $CLUSTER1 --cluster-name $CLUSTER2 | kubectl --context $CLUSTER1 apply -f -
+linkerd --context=$CLUSTER2 mc link --service-account-name $CLUSTER1 --cluster-name $CLUSTER2 | kubectl --context $CLUSTER1 apply -f -
 
 # As dev also need to use the intermediate CA let's install dev here only
 
